@@ -183,6 +183,14 @@ async def sync(ctx: Context) -> None:
     await ctx.send(f"Synced {len(synced)} commands globally.")
 
 
+@bot.command()
+@commands.is_owner()
+async def clear(ctx: Context) -> None:
+    bot.tree.clear_commands(guild=None)
+    await bot.tree.sync(guild=None)
+    await ctx.send(f"Deleted commands globally.")
+
+
 # ------ Events ------
 
 

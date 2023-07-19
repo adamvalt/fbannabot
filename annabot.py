@@ -111,6 +111,19 @@ async def setup_annaposting(interaction: discord.Interaction):
 
 
 @bot.tree.command()
+async def setup_midnight_mesage(interaction: discord.Interaction):
+    """Set channel for sending happy new day message"""
+    bot.db.execute(
+        "INSERT OR REPLACE INTO newday(channel_id) VALUES (?)",
+        (interaction.channel_id,),
+    )
+    bot.db.commit()
+    await interaction.response.send_message(
+        f"Happy new day message will now be sent in <#{interaction.channel_id}>."
+    )
+
+
+@bot.tree.command()
 async def add_annacommand(
     interaction: discord.Interaction,
     command_name: str,

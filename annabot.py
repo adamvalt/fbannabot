@@ -30,7 +30,9 @@ class AnnaDB:
         self.execute(
             "CREATE TABLE IF NOT EXISTS customcommands(command_name TEXT PRIMARY KEY, command_response TEXT)"
         )
-        self.execute("CREATE TABLE IF NOT EXISTS newday(channel_id TEXT PRIMARY KEY)")
+        self.execute(
+            "CREATE TABLE IF NOT EXISTS newday(channel_id INTEGER PRIMARY KEY)"
+        )
         self.commit()
 
     def close(self):

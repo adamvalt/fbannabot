@@ -286,9 +286,9 @@ async def delete_old_messages():
 
 
 async def send_message_at_midnight():
-    now = datetime.now()
+    now = datetime.utcnow()
     for channel_id in bot.db.get_newday():
-        if now.hour == 00 and now.minute == 00:
+        if now.hour == 22 and now.minute == 00:
             channel = bot.get_channel(channel_id)
             if now.date().isoweekday() == 1:
                 img = bot.db.execute(

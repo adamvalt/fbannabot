@@ -149,6 +149,8 @@ async def list_annacommands(interaction: discord.Interaction) -> None:
     commands = bot.db.get_customcommands()
     await interaction.response.send_message(
         "\n".join([f".{command[0]}" for command in commands])
+        if commands != []
+        else "No custom commands registered."
     )
 
 

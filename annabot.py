@@ -250,7 +250,6 @@ async def process_custom_commands_wrapper(message: discord.Message):
     original_city_name, _, _ = content.removeprefix(command_prefix).partition(" ")
     temp_command = pici_prefix + original_city_name
 
-    original_city_name, _, _ = content.removeprefix(command_prefix).partition(" ")
     city_name = cleanup_and_format_city_name(original_city_name)
     if content.startswith(command_prefix) and city_name is not None:
         image = create_image_with_text("baseimg_blank.png", city_name, (227, 308))

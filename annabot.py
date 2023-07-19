@@ -168,6 +168,8 @@ async def setup_delete(interaction: discord.Interaction, hours: int) -> None:
     bot.db.commit()
     await interaction.response.send_message(
         f"Messages older than {hours}h will now be deleted in <#{interaction.channel_id}>."
+        if hours > 0
+        else "Autodelete disabled."
     )
 
 

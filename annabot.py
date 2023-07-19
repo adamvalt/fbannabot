@@ -236,6 +236,7 @@ async def process_custom_commands_wrapper(message: discord.Message):
     content: str = message.content.lower()
     pici_prefix = "pici_"
     command_prefix = bot.prefix + pici_prefix
+    original_city_name, _, _ = content.removeprefix(command_prefix).partition(" ")
     temp_command = pici_prefix + original_city_name
 
     original_city_name, _, _ = content.removeprefix(command_prefix).partition(" ")

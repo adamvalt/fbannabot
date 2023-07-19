@@ -175,7 +175,6 @@ async def setup_delete(interaction: discord.Interaction, hours: int) -> None:
 @bot.command()
 @commands.is_owner()
 async def sync(ctx: Context) -> None:
-    bot.tree.clear_commands(guild=None)
     synced = await bot.tree.sync(guild=None)
     await ctx.send(f"Synced {len(synced)} commands globally.")
 

@@ -95,7 +95,6 @@ async def on_ready():
     if not scrape_data.is_running():
         print("Starting scrape_data")
         scrape_data.start()
-    await scrape_data()
 
 
 # ------ Slash Commands ------

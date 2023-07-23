@@ -44,17 +44,8 @@ class AnnaDB:
     def commit(self):
         self.connection.commit()
 
-    def get_customcommands(self):
-        return self.execute("SELECT * FROM customcommands").fetchall()
-
-    def get_places(self):
-        return self.execute("SELECT name, name_locative FROM places").fetchall()
-
-    def get_autodelete(self):
-        return self.execute("SELECT * FROM autodelete").fetchall()
-
-    def get_newday(self):
-        return self.execute("SELECT * FROM newday").fetchall()
+    def get_table(self, db_name):
+        return self.execute(f"SELECT * FROM {db_name}").fetchall()
 
 
 class AnnaBot(commands.Bot):
@@ -66,11 +57,11 @@ class AnnaBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=self.prefix, intents=self.intents)
         self.db = AnnaDB()
-        self.cached_cities: List[str] = self.db.get_places()
+        self.cached_cities: List[str] = self.db.get_table("places")
         self.setup_commands()
 
     def setup_commands(self):
-        for command_name, command_response in self.db.get_customcommands():
+        for command_name, command_response in self.db.get_table("customcommands"):
             self.create_command(command_name, message=command_response)
 
     def create_command(self, name, message=None, file=None):
@@ -159,7 +150,7 @@ async def remove_annacommand(
 @bot.tree.command()
 async def list_annacommands(interaction: discord.Interaction) -> None:
     """List all registered custom commands"""
-    commands = bot.db.get_customcommands()
+    commands = bot.db.get_table("customcommands")
     await interaction.response.send_message(
         "\n".join([f".{command[0]}" for command in commands])
         if commands != []
@@ -287,7 +278,7 @@ async def add_odpusti(message):
 
 
 async def delete_old_messages():
-    for channel_id, minutes in bot.db.get_autodelete():
+    for channel_id, minutes in bot.db.get_table("autodelete"):
         channel = bot.get_channel(channel_id)
         if channel is not None and minutes > 0:
             offset_curent_datetime = datetime.now() - timedelta(minutes=minutes)
@@ -300,7 +291,7 @@ async def delete_old_messages():
 
 async def send_message_at_midnight():
     now = datetime.utcnow()
-    for channel_id in bot.db.get_newday():
+    for channel_id in bot.db.get_table("newday"):
         if now.hour == 22 and now.minute == 00:
             channel = bot.get_channel(channel_id)
             if now.date().isoweekday() == 1:

@@ -1,14 +1,18 @@
 import asyncio
+import math
 import os
 import sqlite3
-from datetime import datetime, timedelta
-from typing import List, Optional
+from datetime import datetime, time, timedelta
+from typing import List, Optional, Tuple
 
 import discord
+import instaloader
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
 from PIL import Image, ImageDraw, ImageFont
 from unidecode import unidecode
+
+from facebook_scraper import FacebookScraper
 
 FONT_LOCATION = "/usr/share/fonts/TTF/DejaVuSans.ttf"
 
@@ -32,6 +36,9 @@ class AnnaDB:
         )
         self.execute(
             "CREATE TABLE IF NOT EXISTS newday(channel_id INTEGER PRIMARY KEY)"
+        )
+        self.execute(
+            "CREATE TABLE IF NOT EXISTS annaimages(post_id INTEGER PRIMARY KEY, image_url TEXT)"
         )
         self.commit()
 
@@ -84,6 +91,11 @@ async def on_ready():
     if not on_each_minute.is_running():
         print("Starting on_each_minute")
         on_each_minute.start()
+
+    if not scrape_data.is_running():
+        print("Starting scrape_data")
+        scrape_data.start()
+    await scrape_data()
 
 
 # ------ Slash Commands ------
@@ -212,13 +224,73 @@ async def on_each_minute():
     await delete_old_messages()
 
 
+async def facebook_scrape(
+    posted_images_ids: List[Tuple[int, str]],
+    annaposting: List[Tuple[int, int]],
+    number_of_posts: Optional[int] = None,
+):
+    with FacebookScraper("babkaankalenanna") as scraper:
+        for post_id, image_url in scraper.scraped_images(number_of_posts):
+            if post_id in posted_images_ids:
+                break
+            bot.db.execute(
+                "INSERT INTO annaimages(post_id, image_url) VALUES (?, ?)",
+                (post_id, image_url),
+            )
+            bot.db.commit()
+            for guild_id, channel_id in annaposting:
+                guild = bot.get_guild(guild_id)
+                channel = guild.get_channel(channel_id)
+                await channel.send(image_url)
+
+
+async def instagram_scrape(
+    posted_images_ids: List[Tuple[int, str]],
+    annaposting: List[Tuple[int, int]],
+    number_of_posts: Optional[int] = None,
+    newer_than: Optional[datetime] = None,
+):
+    L = instaloader.Instaloader()
+
+    posts = instaloader.Profile.from_username(L.context, "anna659149").get_posts()
+
+    for post in posts:
+        post_id = math.trunc(post.date.timestamp())  # semi-unique id from timestamp
+        if number_of_posts is not None and number_of_posts >= 0:
+            if number_of_posts <= 0:
+                break
+            number_of_posts -= 1
+
+        if post_id in posted_images_ids:
+            break
+
+        bot.db.execute(
+            "INSERT INTO annaimages(post_id, image_url) VALUES (?, ?)",
+            (post_id, post.url),
+        )
+        bot.db.commit()
+        for guild_id, channel_id in annaposting:
+            guild = bot.get_guild(guild_id)
+            channel = guild.get_channel(channel_id)
+            await channel.send(post.url)
+
+
+@tasks.loop(time=[time(hour=6), time(hour=10), time(hour=18)])
+async def scrape_data():
+    print("Scraping data")
+    posted_images_ids = list(map(lambda x: x[0], bot.db.get_table("annaimages")))
+    anna_posting = bot.db.get_table("annaposting")
+    await facebook_scrape(posted_images_ids, anna_posting, 8)
+    await instagram_scrape(posted_images_ids, anna_posting, 5)
+
+
 def cleanup_and_format_city_name(name: str) -> Optional[str]:
     def correct_name_length(name: str, max_length: str) -> str:
         return name.replace(" ", "\n", 1) if len(name) > max_length else name
 
     def get_city_name_or_none(name: str) -> Optional[str]:
         target_city = unidecode(name.upper())
-        for city_name, city_name_locative in bot.cached_cities:
+        for _id, city_name, city_name_locative in bot.cached_cities:
             if target_city == unidecode(city_name.upper().replace(" ", "_")):
                 return format_city_name(city_name, city_name_locative)
         return None

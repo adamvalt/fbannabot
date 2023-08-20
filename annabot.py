@@ -9,6 +9,7 @@ import discord
 import instaloader
 from discord.ext import commands, tasks
 from discord.ext.commands import Context
+from discord.ext.commands.errors import CommandNotFound
 from PIL import Image, ImageDraw, ImageFont
 from unidecode import unidecode
 
@@ -227,6 +228,17 @@ async def on_each_minute():
     await delete_old_messages()
 
 
+def handle_exceptions(f):
+    async def wrapper(*args, **kwargs):
+        try:
+            return await f(*args, **kwargs)
+        except Exception as e:
+            print(f"{f.__name__} Error:\n", e)
+
+    return wrapper
+
+
+@handle_exceptions
 async def facebook_scrape(
     posted_images_ids: List[Tuple[int, str]],
     annaposting: List[Tuple[int, int]],
@@ -247,6 +259,7 @@ async def facebook_scrape(
                 await channel.send(image_url)
 
 
+@handle_exceptions
 async def instagram_scrape(
     posted_images_ids: List[Tuple[int, str]],
     annaposting: List[Tuple[int, int]],
@@ -338,10 +351,15 @@ async def process_custom_commands_wrapper(message: discord.Message):
         # creating temporary command prevents throwing an
         # error when command with that name is not found
         bot.create_command(temp_command, file=image)
-        await bot.process_commands(message)
-        bot.delete_command(temp_command)
-    else:
-        await bot.process_commands(message)
+        try:
+            await bot.process_commands(message)
+            return
+        except CommandNotFound as e:
+            print(e)
+        finally:
+            bot.delete_command(temp_command)
+    # if exception is thrown or
+    await bot.process_commands(message)
 
 
 async def add_odpusti(message):
@@ -367,6 +385,7 @@ async def delete_old_messages():
                 await asyncio.sleep(2)  # rate limit prevention
 
 
+@handle_exceptions
 async def send_message_at_midnight():
     now = datetime.utcnow()
     # in utc timezone

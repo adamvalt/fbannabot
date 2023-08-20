@@ -118,14 +118,14 @@ async def setup_annaposting(interaction: discord.Interaction):
 
 @bot.tree.command()
 async def setup_midnight_mesage(interaction: discord.Interaction):
-    """Set channel for sending happy new day message"""
+    """Set channel for sending midnight message"""
     bot.db.execute(
         "INSERT OR REPLACE INTO newday(channel_id) VALUES (?)",
         (interaction.channel_id,),
     )
     bot.db.commit()
     await interaction.response.send_message(
-        f"Happy new day message will now be sent in <#{interaction.channel_id}>."
+        f"Midnight message will now be sent in <#{interaction.channel_id}>."
     )
 
 
@@ -369,17 +369,28 @@ async def delete_old_messages():
 
 async def send_message_at_midnight():
     now = datetime.utcnow()
-    for channel_id in bot.db.get_table("newday"):
-        if now.hour == 22 and now.minute == 00:
-            channel = bot.get_channel(channel_id)
-            if now.date().isoweekday() == 1:
+    # in utc timezone
+    if now.hour == 21 and now.minute == 59:
+        # sleep until one second after midnight
+        time_to_sleep = 60 - now.second + 1
+        asyncio.sleep(time_to_sleep)
+
+        for channel_id in bot.db.get_table("newday"):
+            guild_id = 1056344795699757126
+            channel_id = 1056344795699757129
+            guild = bot.get_guild(guild_id) or await bot.fetch_guild(guild_id)
+            channel = guild.get_channel(channel_id) or await guild.fetch_channel(
+                channel_id
+            )
+
+            if now.date().isoweekday() == 7:
                 img = bot.db.execute(
                     "SELECT command_response FROM customcommands WHERE command_name = 'pici'"
-                ).fetchone()
+                ).fetchone()[0]
                 await channel.send(f"Šťastný nový pondelok! :((")
                 await channel.send(img)
             else:
-                await channel.send(f"Šťastný nový deň!")
+                await channel.send(f"Šťastný nový deň a pozor zitra!")
 
 
 if __name__ == "__main__":

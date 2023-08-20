@@ -15,6 +15,10 @@ from unidecode import unidecode
 from facebook_scraper import FacebookScraper
 
 FONT_LOCATION = "/usr/share/fonts/TTF/DejaVuSans.ttf"
+DISCORD_TOKEN = os.environ.get("TOKEN")
+
+IG_SCRAPER_USERNAME = os.environ.get("IGUSERNAME")
+IG_SCRAPER_SESSION_FILEPATH = os.environ.get("IGSESSION")
 
 
 class AnnaDB:
@@ -249,7 +253,10 @@ async def instagram_scrape(
     number_of_posts: Optional[int] = None,
     newer_than: Optional[datetime] = None,
 ):
-    L = instaloader.Instaloader()
+    L = instaloader.Instaloader(quiet=True)
+    L.load_session_from_file(
+        username=IG_SCRAPER_USERNAME, filename=IG_SCRAPER_SESSION_FILEPATH
+    )
 
     posts = instaloader.Profile.from_username(L.context, "anna659149").get_posts()
 
@@ -376,4 +383,4 @@ async def send_message_at_midnight():
 
 
 if __name__ == "__main__":
-    bot.run(os.environ.get("TOKEN"))
+    bot.run(DISCORD_TOKEN)
